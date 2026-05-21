@@ -22,20 +22,28 @@ Generate a complete, compilable SwiftUI animation file in the legendary-Animo st
 If the animation involves images, photos, or cards, scan for existing assets first:
 
 1. Check these paths in order:
-   - `legendary-Animo/Res/Assets.xcassets/Images/` — project asset catalog
-   - `Assets.xcassets/Images/` — standard Xcode layout
-   - `Assets.xcassets/` — flat layout
+   - `legendary-Animo/Res/Assets.xcassets/Images/`
+   - `Assets.xcassets/Images/`
+   - `Assets.xcassets/`
 
-2. List `.imageset` folder names found — strip the `.imageset` suffix to get the asset name used in `Image("name")`
+2. List `.imageset` folder names — strip `.imageset` suffix to get the `Image("name")` string
 
-3. **If assets found** → use them directly. Print:
+3. **If found** → use them directly. Print:
    ```
-   🖼️  Assets found: photo1, photo2, photo3 … (using in carousel)
+   🖼️  Assets found: photo1, photo2 … (using in file)
    ```
 
-4. **If no assets found** → use `Image(systemName: "photo.fill")` inside a colored `RoundedRectangle` as placeholder. Output Asset Notes at the end listing exactly what to add.
+4. **If not found** → use `Image(systemName: "photo.fill")` in a colored `RoundedRectangle`. Include Asset Notes at the end.
 
 Never invent asset names. Only reference names confirmed to exist on disk.
+
+---
+
+## Haptics — check project first
+
+Before including haptic code, check if `HapticFeedback.swift` exists anywhere in the project:
+- **If found** → call `HapticFeedback.lightImpact()` etc. directly. Do NOT re-declare the struct.
+- **If not found** → call `UIImpactFeedbackGenerator` / `UISelectionFeedbackGenerator` directly inline, and add `import UIKit` at the top.
 
 ---
 
@@ -69,28 +77,6 @@ Never use bare `.spring()` — always explicit `response` + `dampingFraction`. I
 
 ---
 
-## Haptics (always include)
-
-```
-drag start → .lightImpact()
-cross threshold / zone → .selectionChanged()
-commit / snap / release → .mediumImpact()
-tear / destroy → .heavyImpact()
-```
-
-Include this at the bottom of standalone files:
-```swift
-import UIKit
-private struct HapticFeedback {
-    static func lightImpact() { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
-    static func mediumImpact() { UIImpactFeedbackGenerator(style: .medium).impactOccurred() }
-    static func heavyImpact() { UIImpactFeedbackGenerator(style: .heavy).impactOccurred() }
-    static func selectionChanged() { UISelectionFeedbackGenerator().selectionChanged() }
-}
-```
-
----
-
 ## State & Code Rules
 
 - Default: pure `@State` for all gesture tracking · `@GestureState` only if value must auto-reset
@@ -103,7 +89,6 @@ private struct HapticFeedback {
 // MARK: - Model
 // MARK: - Main View   (tokens → @State → body → subviews → gesture → actions)
 // MARK: - Supporting Shapes
-// MARK: - Haptic Helper
 // MARK: - Preview
 ```
 
@@ -111,7 +96,7 @@ private struct HapticFeedback {
 
 ## Output (Create mode)
 
-Stream these progress lines one by one — user sees them immediately:
+Stream these progress lines one by one:
 
 ```
 🖼️  Assets: <found: name1, name2… · or · none found, using placeholders>
@@ -122,18 +107,67 @@ Stream these progress lines one by one — user sees them immediately:
 ✍️  Writing <FileName>.swift…
 ```
 
-After the last progress line, **write the file to disk** using the Write tool:
-- If carousel animation and `legendary-Animo/Carousels/` exists → write there
-- Else if `legendary-Animo/Animations/` exists → write there
-- Else if `Animations/` folder exists → write there
-- Else write `<FileName>.swift` in the current directory
+**Step 1 — Write the file to disk:**
+- Carousel → `legendary-Animo/Carousels/` if exists, else `Carousels/` if exists, else cwd
+- Other → `legendary-Animo/Animations/` if exists, else `Animations/` if exists, else cwd
 
-Then print:
-```
-✅  Saved to <full relative path>
+Print: `✅  Saved to <full relative path>`
+
+---
+
+**Step 2 — Xcode project registration:**
+
+Check for a `.xcodeproj` file:
+```bash
+find . -maxdepth 3 -name "*.xcodeproj" -type d | head -1
 ```
 
-Then output the **ContentView registration** snippet (```swift block) for the user to paste manually:
+**If `.xcodeproj` found** → register the file in `project.pbxproj` using this Python script:
+
+```python
+import uuid, re
+
+pbxproj  = "<xcodeproj_path>/project.pbxproj"
+filename = "<FileName>.swift"
+filepath = "<full relative path written above>"
+# Determine target group: "Carousels" if saved in Carousels/, else "Animations"
+group_name = "Carousels"  # or "Animations"
+
+FILE_REF   = uuid.uuid4().hex[:24].upper()
+BUILD_FILE = uuid.uuid4().hex[:24].upper()
+
+with open(pbxproj) as f:
+    content = f.read()
+
+# Find an existing file in the same group as an insertion anchor
+# Look for the last .swift entry in PBXFileReference section for that group
+# Insert PBXBuildFile, PBXFileReference, group child, and Sources build phase entry
+# Use the same indentation and formatting as surrounding entries
+```
+
+Run the script with the actual values. Use an existing same-group file as the anchor for each insertion point. Print:
+
+```
+📦  Registered in Xcode project: <xcodeproj name>
+    └─ PBXFileReference  ✓
+    └─ PBXBuildFile      ✓
+    └─ Group child       ✓
+    └─ Sources phase     ✓
+```
+
+**If no `.xcodeproj` found** → print:
+
+```
+⚠️  No Xcode project found. Add the file manually:
+    File path: <full path>
+    In Xcode: File → Add Files to "<ProjectName>"
+              or drag into the Navigator → check "Add to target"
+```
+
+---
+
+**Step 3 — ContentView registration snippet** (```swift block, paste manually):
+
 ```swift
 DemoItem(
     row: RowView(icon: "💧", title: "Title Here", desc: "Feature · feature · feature"),
@@ -143,10 +177,10 @@ DemoItem(
 )
 ```
 
-Then **Asset notes** — always include if placeholders were used:
+**Step 4 — Asset notes** (only if placeholders were used):
 ```
 ASSET NOTES:
-- Add portrait images to Assets.xcassets/Images/ named: photo1, photo2, photo3…
+- Add portrait images to Assets.xcassets/Images/ named: photo1, photo2…
   → Recommended size: 400×600pt, portrait ratio
 - Remove placeholder RoundedRectangle once real assets are added
 ```
@@ -162,9 +196,10 @@ Stream before editing:
 ✍️  Writing updated file…
 ```
 
-**Overwrite the file at its existing path on disk** using the Write tool, then print:
+Overwrite the file at its existing path, then print:
 ```
 ✅  Updated <full relative path>
 ```
 
 Then output a **Changes** bullet list of what was modified and why.
+(No pbxproj update needed for edits — file is already registered.)
