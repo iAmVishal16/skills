@@ -1,7 +1,7 @@
 # swiftui-microinteractions
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![skills.sh installs](https://skills.sh/b/iAmVishal16/swiftui-microinteractions)](https://skills.sh/iAmVishal16/swiftui-microinteractions/swiftui-microinteractions)
+[![skills.sh installs](https://skills.sh/b/iAmVishal16/skills)](https://www.skills.sh/iamvishal16/skills/swiftui-microinteractions)
 [![Skill Stars](https://img.shields.io/github/stars/iAmVishal16/swiftui-microinteractions?style=flat&label=skill+stars)](https://github.com/iAmVishal16/swiftui-microinteractions/stargazers)
 [![legendary-Animo](https://img.shields.io/github/stars/iAmVishal16/legendary-Animo?style=flat&label=legendary-Animo+⭐)](https://github.com/iAmVishal16/legendary-Animo/stargazers)
 
@@ -47,7 +47,7 @@ Then use in your agent:
 /swiftui-microinteractions iOS toggle but the track floods with liquid when switched
 ```
 
-[View on skills.sh →](https://skills.sh/iAmVishal16/swiftui-microinteractions/swiftui-microinteractions)
+[View on skills.sh →](https://www.skills.sh/iamvishal16/skills/swiftui-microinteractions)
 
 ### Option B: Claude Code Plugin
 
