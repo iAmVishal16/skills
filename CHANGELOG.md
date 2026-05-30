@@ -6,6 +6,20 @@ Format: `[version] — date — summary`
 
 ---
 
+## [1.3.0] — 2026-05-30
+
+Learnings from building GlassMorphActionView — an iOS 26 capsule ↔ red circle morphing toggle.
+
+- **`GlassEffectContainer` morphing clusters**: documented pattern for fusing/separating multiple glass elements with metaball physics; uses `@Namespace` + `.glassEffectID()` for identity across state changes
+- **Fusion-threshold spacing trap**: `GlassEffectContainer(spacing:)` is the fusion threshold — layout spacing between elements MUST exceed it or shapes blob together permanently at rest. Rule: `layoutSpacing > containerSpacing + 6pt`
+- **Tinted glass**: `.glassEffect(.regular.tint(color), in: shape)` for colored states — never layer a colored shape on top of glass
+- **Edge distortion trap**: never apply `.scaleEffect` with `.leading`/`.trailing` anchors to individual glass elements (subpixel artifacts distort edges even at scale 1.0). Apply container-wide stretch with `.center` anchor instead
+- **3-phase rubber-band toggle**: pre-stretch (0.28/0.55) → morph (0.55/0.72) → release with overshoot (0.45/0.55) — stacked with `asyncAfter` for tactile rubber feel
+- **Light gradient backgrounds for glass demos**: dark backgrounds hide refraction — use `LinearGradient([white:0.97, white:0.88])` to showcase iOS 26 glass
+- **No redundant `.clipShape`** on top of `.glassEffect(in:)` — glassEffect already clips
+
+---
+
 ## [1.2.0] — 2026-05-27
 
 - **SF Symbol replace transition**: `.contentTransition(.symbolEffect(.replace.downUp))` pattern for toggle buttons (more ↔ close, play ↔ pause). Button stays visible — icon morphs in place. Never hide/show a separate close button.

@@ -85,6 +85,95 @@ private func glassShape(radius: CGFloat) -> some View {
 
 Apply to any shape — pill, capsule, circle. Never hardcode `.ultraThinMaterial` for new components when iOS 26 is a target.
 
+### Tinted glass (colored states)
+
+For destructive / accent buttons, use the built-in tint API — never layer a colored shape on top of glass:
+
+```swift
+.glassEffect(.regular.tint(dangerColor), in: Circle())
+```
+
+Danger red: `Color(red: 0.87, green: 0.32, blue: 0.42)` · Accent blue: `Color(red: 0.45, green: 0.65, blue: 1.0)`.
+
+### `GlassEffectContainer` — morphing clusters
+
+When multiple glass elements should fuse and separate with the iOS 26 metaball effect (e.g. a capsule that morphs into a separate circle), wrap them in a `GlassEffectContainer`:
+
+```swift
+@Namespace private var glassNS
+
+GlassEffectContainer(spacing: 18) {
+    HStack(spacing: 28) {                 // see spacing trap below
+        capsule
+            .glassEffect(in: Capsule())
+            .glassEffectID("capsule", in: glassNS)
+
+        if isExpanded {
+            circle
+                .glassEffect(.regular.tint(.red), in: Circle())
+                .glassEffectID("circle", in: glassNS)
+        }
+    }
+}
+```
+
+**Fusion-threshold spacing trap** — `GlassEffectContainer(spacing:)` is the fusion threshold, not visual padding. Any two glass elements within that distance will visually blob together permanently, even at rest. Always make the layout spacing **greater than** `containerSpacing`:
+
+| containerSpacing | HStack spacing | Result |
+|---|---|---|
+| 18 | 10 | ❌ Permanent fusion — edges distorted at rest |
+| 18 | 28 | ✅ Clean shapes at rest, metaball morph only during transition |
+
+Rule: `layoutSpacing > containerSpacing + 6pt` for safe margin.
+
+### Edge distortion trap
+
+Never apply `.scaleEffect(x:y:anchor:)` with offset anchors (`.leading` / `.trailing`) to **individual** glass elements — subpixel rendering at the anchor edge causes visible edge distortion even when scale = 1.0. Apply container-wide rubber stretch instead:
+
+```swift
+GlassEffectContainer(spacing: 18) { ... }
+    .scaleEffect(x: 1.0 + stretch * 0.05, y: 1.0 - stretch * 0.025, anchor: .center)
+```
+
+Also: don't add redundant `.clipShape(Capsule())` on top of `.glassEffect(in: Capsule())` — `glassEffect` already clips.
+
+### 3-phase rubber-band toggle
+
+For glass elements that pop apart or fuse on tap, stack 3 animations to feel like real rubber:
+
+```swift
+private func toggle() {
+    HapticFeedback.mediumImpact()
+
+    // Phase 1 — pre-stretch (rubber tensions)
+    withAnimation(.spring(response: 0.28, dampingFraction: 0.55)) {
+        stretchAmount = 1.0
+    }
+    // Phase 2 — morph fires at peak tension
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+        withAnimation(.spring(response: 0.55, dampingFraction: 0.72)) {
+            isExpanded.toggle()
+        }
+    }
+    // Phase 3 — release snap-back with overshoot
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.55)) {
+            stretchAmount = 0
+        }
+    }
+}
+```
+
+### Light backgrounds for glass demos
+
+To showcase iOS 26 glass effects, use a light gradient background — dark backgrounds hide the refraction. Standalone demo:
+
+```swift
+LinearGradient(colors: [Color(white: 0.97), Color(white: 0.88)],
+               startPoint: .topLeading, endPoint: .bottomTrailing)
+    .ignoresSafeArea()
+```
+
 ---
 
 ## Spring Presets
@@ -179,7 +268,7 @@ Image(systemName: isExpanded ? "xmark" : "ellipsis")
 Stream these progress lines one by one:
 
 ```
-⚙️  swiftui-microinteractions v1.2.0
+⚙️  swiftui-microinteractions v1.3.0
 🖼️  Assets: <found: name1, name2… · or · none found, using placeholders>
 🎯  Archetype: <archetype name>
 ⚡  Physics: <spring preset and why — one phrase>
